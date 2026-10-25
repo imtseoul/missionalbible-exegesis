@@ -176,47 +176,123 @@
     });
   }
 
-  document.querySelectorAll("[data-print]").forEach((button) => button.addEventListener("click", () => global.print()));
-  const copyButton = document.querySelector("[data-copy-citation]");
-  if (copyButton) copyButton.addEventListener("click", async () => {
-    const citation = document.getElementById("citation-text");
-    const details = document.getElementById("citation-details");
+  const copyButton = document.querySelector("[data-copy-article]");
+  const copySource = document.getElementById("article-copy-text");
+  if (copyButton && copySource) {
     const status = document.getElementById("copy-status");
-    details.open = true;
+    const panel = document.getElementById("copy-fallback");
+    const area = document.getElementById("copy-text");
+    const closeButton = document.querySelector("[data-close-copy]");
+    let copyText = "";
     try {
-      if (!global.navigator.clipboard) throw new Error("Clipboard unavailable");
-      await global.navigator.clipboard.writeText(citation.value);
-      status.textContent = "인용 정보를 복사했습니다.";
-      copyButton.textContent = "복사 완료";
-    } catch (_) {
-      citation.focus(); citation.select();
-      status.textContent = "선택된 인용 정보를 복사하세요.";
-      details.scrollIntoView({ block: "center", behavior: "smooth" });
-    }
-  });
+      const parsed = JSON.parse(copySource.textContent || "");
+      if (typeof parsed === "string") copyText = parsed;
+      else if (parsed && typeof parsed.text === "string") copyText = parsed.text;
+    } catch (_) { copyText = ""; }
+    const say = (message) => { if (status) status.textContent = message; };
+    const legacyCopy = () => {
+      const temp = document.createElement("textarea");
+      temp.value = copyText;
+      temp.setAttribute("readonly", "");
+      temp.style.position = "fixed"; temp.style.top = "0"; temp.style.left = "-9999px"; temp.style.opacity = "0";
+      document.body.append(temp);
+      temp.select();
+      let copied = false;
+      try { copied = document.execCommand("copy") === true; } catch (_) { copied = false; }
+      temp.remove();
+      copyButton.focus();
+      return copied;
+    };
+    const closePanel = () => {
+      if (!panel || panel.hidden) return;
+      panel.hidden = true;
+      copyButton.focus();
+    };
+    const openPanel = () => {
+      if (!panel || !area) { say("이 브라우저에서는 자동 복사를 할 수 없습니다. 본문을 직접 선택해 복사하세요."); return; }
+      area.value = copyText;
+      panel.hidden = false;
+      area.focus();
+      area.select();
+      say("자동 복사가 되지 않았습니다. 선택된 글을 Ctrl+C 또는 Cmd+C로 복사하세요.");
+    };
+    copyButton.addEventListener("click", async () => {
+      say("");
+      if (!copyText) { say("복사할 본문을 불러오지 못했습니다."); return; }
+      let copied = false;
+      if (global.navigator.clipboard && typeof global.navigator.clipboard.writeText === "function") {
+        try { await global.navigator.clipboard.writeText(copyText); copied = true; } catch (_) { copied = false; }
+      }
+      if (!copied) copied = legacyCopy();
+      if (copied) {
+        if (panel) panel.hidden = true;
+        say("해설 본문을 복사했습니다.");
+      } else {
+        openPanel();
+      }
+    });
+    if (closeButton) closeButton.addEventListener("click", closePanel);
+    if (panel) panel.addEventListener("keydown", (event) => { if (event.key === "Escape") { event.preventDefault(); closePanel(); } });
+  }
+
   const article = document.querySelector(".article-body");
   if (article) {
+    const clampFont = (value) => Math.max(-2, Math.min(4, Math.round(Number(value) || 0)));
     let adjustment = 0;
-    try { adjustment = Math.max(-2, Math.min(4, Number(global.localStorage.getItem("exegesis-font-adjustment")) || 0)); } catch (_) { /* Reading also works without storage. */ }
+    try { adjustment = clampFont(global.localStorage.getItem("exegesis-font-adjustment")); } catch (_) { adjustment = 0; }
     const applyFont = () => document.documentElement.style.setProperty("--font-adjustment", adjustment + "px");
     applyFont();
     document.querySelectorAll("[data-font]").forEach((button) => button.addEventListener("click", () => {
-      adjustment = button.dataset.font === "reset" ? 0 : Math.max(-2, Math.min(4, adjustment + (button.dataset.font === "larger" ? 1 : -1)));
+      const action = button.dataset.font;
+      if (action !== "smaller" && action !== "reset" && action !== "larger") return;
+      adjustment = action === "reset" ? 0 : clampFont(adjustment + (action === "larger" ? 1 : -1));
       applyFont();
-      try { global.localStorage.setItem("exegesis-font-adjustment", String(adjustment)); } catch (_) { /* Font size remains adjustable. */ }
+      try { global.localStorage.setItem("exegesis-font-adjustment", String(adjustment)); } catch (_) { /* Size still applies for this page. */ }
     }));
-    if ("IntersectionObserver" in global) {
-      const headings = Array.from(document.querySelectorAll(".reading-section, .article-sources, .article-related"));
-      const observer = new IntersectionObserver((entries) => {
-        const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (!visible.length) return;
-        const active = "#" + visible[0].target.id;
-        document.querySelectorAll(".reading-sidebar a[href^='#'], .mobile-toc a[href^='#']").forEach((anchor) => {
-          if (anchor.getAttribute("href") === active) anchor.setAttribute("aria-current", "location"); else anchor.removeAttribute("aria-current");
+
+    const sections = Array.from(document.querySelectorAll(".reading-section[id], .article-sources[id], .article-related[id]"));
+    const tocLinks = Array.from(document.querySelectorAll(".reading-sidebar a[href^='#'], .mobile-toc a[href^='#']"));
+    if (sections.length && tocLinks.length) {
+      const targetOf = (anchor) => {
+        const raw = anchor.getAttribute("href").slice(1);
+        try { return decodeURIComponent(raw); } catch (_) { return raw; }
+      };
+      let current;
+      let pending = false;
+      const mark = (id) => {
+        if (id === current) return;
+        current = id;
+        tocLinks.forEach((anchor) => {
+          if (id && targetOf(anchor) === id) anchor.setAttribute("aria-current", "location");
+          else anchor.removeAttribute("aria-current");
         });
-      }, { rootMargin: "-12% 0px -65% 0px", threshold: 0 });
-      headings.forEach((heading) => observer.observe(heading));
+      };
+      const update = () => {
+        pending = false;
+        const root = document.documentElement;
+        const viewport = global.innerHeight || root.clientHeight;
+        const line = Math.min(160, viewport * 0.3);
+        const scrollable = root.scrollHeight > viewport + 2;
+        const atBottom = scrollable && (global.scrollY || root.scrollTop) + viewport >= root.scrollHeight - 2;
+        let id = null;
+        if (atBottom) id = sections[sections.length - 1].id;
+        else {
+          for (const section of sections) {
+            if (section.getBoundingClientRect().top <= line) id = section.id; else break;
+          }
+        }
+        mark(id);
+      };
+      const schedule = () => {
+        if (pending) return;
+        pending = true;
+        if (typeof global.requestAnimationFrame === "function") global.requestAnimationFrame(update); else global.setTimeout(update, 50);
+      };
+      global.addEventListener("scroll", schedule, { passive: true });
+      global.addEventListener("resize", schedule);
+      global.addEventListener("hashchange", schedule);
+      global.addEventListener("load", schedule);
+      update();
     }
-    document.querySelectorAll(".mobile-toc a").forEach((anchor) => anchor.addEventListener("click", () => { document.querySelector(".mobile-toc").open = false; }));
   }
 })(typeof window === "undefined" ? globalThis : window);
