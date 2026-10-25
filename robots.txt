@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://imtseoul.github.io/missionalbible-exegesis/sitemap.xml
