@@ -36,9 +36,22 @@
     ["2John", "요한이서", 1, "요이 2john"], ["3John", "요한삼서", 1, "요삼 3john"],
     ["Jude", "유다서", 1, "유 jude"], ["Rev", "요한계시록", 22, "계 revelation rev"]
   ];
+  // Verse totals follow 개역개정 numbering (Psalm titles are not numbered as verses).
+  const chaptersFrom = (first, counts) => Object.fromEntries(counts.map((count, index) => [first + index, count]));
   const verseCounts = {
-    "2Cor": [24, 17, 18, 18, 21, 18, 16, 24, 15, 18, 33, 21, 13],
-    "Phlm": [25], "Amos": [15, 16, 15, 13, 27, 14, 17, 14, 15], "Mic": [16, 13, 12, 13, 15, 16, 20]
+    "2Cor": chaptersFrom(1, [24, 17, 18, 18, 21, 18, 16, 24, 15, 18, 33, 21, 13]),
+    "Phlm": chaptersFrom(1, [25]),
+    "Amos": chaptersFrom(1, [15, 16, 15, 13, 27, 14, 17, 14, 15]),
+    "Mic": chaptersFrom(1, [16, 13, 12, 13, 15, 16, 20]),
+    "Isa": chaptersFrom(40, [31, 29, 25, 28, 28, 25, 13, 15, 22, 26, 11, 23, 15, 12, 17, 13, 12, 21, 14, 21, 22, 11, 12, 19, 12, 25, 24]),
+    "Ps": chaptersFrom(20, [9, 13, 31, 6, 10, 22])
+  };
+  const versesIn = (book, chapter) => (verseCounts[book] || {})[chapter] || 176;
+  const unitOf = (book) => (book === "Ps" ? "편" : "장");
+  // Topic particle 은/는 chosen by the final syllable of the book name.
+  const topic = (name) => {
+    const code = name.charCodeAt(name.length - 1) - 0xac00;
+    return name + (code >= 0 && code <= 11171 && code % 28 ? "은" : "는");
   };
   const normalize = (value) => value.toLocaleLowerCase().replace(/\s+/g, "");
   const aliases = books.flatMap((book) => [book[1], ...book[3].split(" ")].map((alias) => ({ alias, book }))).sort((a, b) => b.alias.length - a.alias.length);
@@ -51,31 +64,31 @@
     // Book abbreviations only introduce a passage when followed by a number.
     const found = aliases.find(({ alias }) => compact === alias || (compact.startsWith(alias) && /^[\d:]/.test(compact.slice(alias.length))));
     if (!found) {
-      if (/^[\d\s:장절.-]+$/.test(trimmed)) return { kind: "invalid", message: "책 이름과 장절을 함께 입력하세요. 예: 고후 1:3" };
+      if (/^[\d\s:장편절.-]+$/.test(trimmed)) return { kind: "invalid", message: "책 이름과 장절을 함께 입력하세요. 예: 시 23:1, 고후 1:3" };
       return { kind: "text", terms: trimmed.toLocaleLowerCase().split(/\s+/).filter(Boolean) };
     }
     const book = found.book;
     let rest = compact.slice(found.alias.length);
     if (!rest) return { kind: "book", book: book[0], label: book[1] };
     if (book[2] === 1 && /^\d+(?:-\d+)?절$/.test(rest)) rest = "1:" + rest;
-    // Korean chapter and verse notation shares the same parser as colon notation.
-    rest = rest.replace(/장(?=\d)/g, ":").replace(/장$/g, "").replace(/절/g, "");
+    // Korean chapter (장, or 편 for Psalms) and verse notation shares the colon parser.
+    rest = rest.replace(/[장편](?=\d)/g, ":").replace(/[장편]$/g, "").replace(/절/g, "");
     const match = rest.match(/^(\d+)(?::(\d+))?(?:-(?:(\d+):)?(\d+))?$/);
-    if (!match) return { kind: "invalid", message: "장절 형식을 확인하세요. 예: 고후 1:3 또는 고린도후서 3장" };
+    if (!match) return { kind: "invalid", message: "장절 형식을 확인하세요. 예: 시 23:1, 시편 23편, 고린도후서 3장" };
     const chapter = Number(match[1]);
     const verse = match[2] ? Number(match[2]) : null;
     let start, end;
     if (verse === null) {
-      if (match[3]) return { kind: "invalid", message: "장 범위나 장절 범위를 입력하세요. 예: 고후 3장 또는 고후 3:1-18" };
+      if (match[3]) return { kind: "invalid", message: "장 범위나 장절 범위를 입력하세요. 예: 사 40장 또는 사 40:1-11" };
       start = [chapter, 1];
       const endChapter = match[4] ? Number(match[4]) : chapter;
-      end = [endChapter, (verseCounts[book[0]] || [])[endChapter - 1] || 176];
+      end = [endChapter, versesIn(book[0], endChapter)];
     } else {
       start = [chapter, verse];
       end = [match[3] ? Number(match[3]) : chapter, match[4] ? Number(match[4]) : verse];
     }
-    const invalid = [start, end].some(([c, v]) => c < 1 || c > book[2] || v < 1 || v > ((verseCounts[book[0]] || [])[c - 1] || 176));
-    if (invalid || compare(start, end) > 0) return { kind: "invalid", message: "장과 절의 범위를 확인하세요. " + book[1] + "는 " + book[2] + "장까지 있습니다." };
+    const invalid = [start, end].some(([c, v]) => c < 1 || c > book[2] || v < 1 || v > versesIn(book[0], c));
+    if (invalid || compare(start, end) > 0) return { kind: "invalid", message: "장과 절의 범위를 확인하세요. " + topic(book[1]) + " " + book[2] + unitOf(book[0]) + "까지 있습니다." };
     return { kind: "passage", book: book[0], label: book[1], start, end };
   }
 

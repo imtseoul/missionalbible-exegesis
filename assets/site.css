@@ -136,6 +136,8 @@ button:hover { background: var(--wash); }
 .reading-section { padding-top: 56px; scroll-margin-top: 24px; }
 .reading-section h2 { margin-bottom: 24px; font-size: 26px; }
 .article-body p { margin: 0 0 24px; font-size: calc(18px + var(--font-adjustment)); line-height: 1.85; text-align: left; word-break: keep-all; overflow-wrap: anywhere; }
+/* Pretendard has no Hebrew glyphs; the system Hebrew face is drawn smaller, so pointed words are enlarged slightly. */
+bdi:lang(he) { font-size: 1.15em; line-height: 1; }
 .article-body sup { margin-left: 1px; font-size: 0.68em; line-height: 0; vertical-align: super; }
 .note-ref { padding: 0 3px; font-weight: 600; color: var(--red); text-decoration: none; }
 .note-ref:target, .article-sources li:target { background: var(--wash); outline: 1px solid var(--rule); outline-offset: 4px; }
