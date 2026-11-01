@@ -318,6 +318,12 @@ a.neighbor:active { background: var(--surface-strong); }
 /* Return links fit inside the 24px line on pointer screens, so a note keeps an even line rhythm. */
 .article-sources .note-back { display: inline-flex; align-items: center; justify-content: center; min-height: 24px; padding: 0 8px; font-size: 13px; line-height: 1; font-weight: 600; color: var(--text-2); text-decoration: none; background: var(--surface); border-radius: var(--radius); vertical-align: top; transition: background-color var(--motion), color var(--motion); }
 li > .note-back { margin-left: 8px; }
+.note-backs-fold { display: inline-block; max-width: 100%; margin-left: 8px; vertical-align: top; }
+.note-backs-fold > summary { list-style: none; cursor: pointer; gap: 8px; }
+.note-backs-fold > summary::-webkit-details-marker { display: none; }
+.note-backs-fold > summary::after { content: ""; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg); }
+.note-backs-fold[open] > summary::after { transform: translateY(1px) rotate(-135deg); }
+.note-backs-fold > .note-backs { display: flex; margin: 8px 0 0; }
 .article-sources .note-back-num { min-width: 24px; padding: 0; font-variant-numeric: tabular-nums; }
 .back-to-book { margin-top: 40px; padding-top: 8px; border-top: 1px solid var(--line); }
 .back-to-book a { display: inline-flex; align-items: center; gap: 8px; min-height: var(--control); font-size: 15px; font-weight: 600; color: var(--ink); text-decoration: none; }
