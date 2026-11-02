@@ -1,0 +1,62 @@
+/* Current pages, 2026-11-02: the passage leads and the title follows.
+   Loaded after reader-20261101.css on current pages only; fixed editions never load this file.
+   Passage: ink, 700, larger. Title: --text, 600, one step smaller. The page's own passage numbers keep the rubric
+   red (current location). Fixed spacing stays on the 8px grid; body text, measure and colours are unchanged. */
+
+/* Commentary header: book and passage form one display line; the title (h1) follows as the heading beneath it. */
+.article-passage { gap: 0 8px; font-size: 32px; line-height: 40px; font-weight: 700; color: var(--ink); }
+.article-book { color: var(--ink); text-decoration: underline; text-decoration-color: var(--line-strong); text-decoration-thickness: 2px; }
+.article-book::after { content: none; }
+.article-ref { font-variant-numeric: normal; white-space: nowrap; }
+.article-header h1 { margin-top: 8px; font-size: 20px; line-height: 28px; font-weight: 600; color: var(--text); }
+
+/* Home and search lists: passage, then title. */
+.passage-list .ref { font-size: 18px; line-height: 24px; font-weight: 700; color: var(--ink); }
+.passage-list .row-title { font-size: 16px; line-height: 24px; font-weight: 500; color: var(--text); }
+
+/* Book page: the chapter group stays above its passages. */
+.group-heading { font-size: 24px; line-height: 32px; }
+.entry-ref { font-size: 20px; line-height: 28px; font-weight: 700; color: var(--ink); }
+.book-entry h3 { font-size: 17px; line-height: 26px; font-weight: 600; }
+.entry-link { color: var(--text); }
+
+/* Search results: the whole result opens the commentary, as book entries do, so the passage is part of the target. */
+.result { position: relative; }
+.result-ref { font-size: 20px; line-height: 28px; font-weight: 700; color: var(--ink); }
+.result h2 { font-size: 17px; line-height: 26px; font-weight: 600; }
+.result h2 a { color: var(--text); }
+.result h2 a::after { content: ""; position: absolute; inset: 0; }
+
+/* Previous and next passage cards. */
+.neighbor-ref { margin-top: 8px; font-size: 20px; line-height: 28px; font-weight: 700; color: var(--ink); }
+.neighbor-title { font-size: 17px; line-height: 26px; font-weight: 600; color: var(--text); }
+
+/* Same-book passages in the left rail (1024px and wider). The current passage keeps its rubric number. */
+.rp-ref { font-size: 16px; line-height: 24px; font-weight: 700; color: var(--ink); }
+
+/* At 20px and above, proportional figures keep a passage such as 1:1-11 together; aligned list columns keep tabular figures.
+   Title lines wrap in balanced lengths instead of leaving one word alone. */
+.entry-ref, .result-ref, .neighbor-ref { font-variant-numeric: normal; }
+.article-header h1, .book-entry h3, .result h2, .neighbor-title { text-wrap: balance; }
+
+@media (hover: hover) {
+  .article-book:hover { text-decoration-color: var(--ink); text-decoration-thickness: 2px; }
+}
+
+/* Outline panel below 1024px: neighbouring passages. */
+@media (max-width: 1023px) {
+  .bar-neighbors .neighbor-ref { font-size: 17px; line-height: 24px; font-weight: 700; color: var(--ink); }
+  .bar-neighbors .neighbor-title { font-size: 15px; line-height: 24px; font-weight: 500; color: var(--text); }
+}
+
+@media (min-width: 768px) {
+  .article-passage { font-size: 40px; line-height: 48px; }
+  .article-header h1 { font-size: 24px; line-height: 32px; }
+  .entry-ref, .result-ref, .neighbor-ref { font-size: 22px; line-height: 32px; }
+  .book-entry h3, .result h2, .neighbor-title { font-size: 18px; line-height: 28px; }
+}
+
+@media (max-width: 359px) {
+  .article-passage { font-size: 28px; line-height: 36px; }
+  .article-header h1 { font-size: 20px; line-height: 28px; }
+}
